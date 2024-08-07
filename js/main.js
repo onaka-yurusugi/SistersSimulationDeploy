@@ -1,46 +1,90 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     const elements = getElements(); // DOM要素を取得
     let state = initializeState(); // 初期状態を設定
 
     // 自由記入エリアを初期状態で非表示に設定
-    elements.freeTextContainer.style.display = 'none';
+    elements.freeTextContainer.style.display = "none";
     // モーダルを表示
-    elements.modal.style.display = 'flex';
+    elements.modal.style.display = "flex";
 
-    // キャラクター選択ボタンのクリックイベント
+    // キャラクター選択の変更イベント
+    elements.characterSelect.addEventListener("change", function () {
+        if (this.value === "その他") {
+            elements.customForm.style.display = "block";
+        } else {
+            elements.customForm.style.display = "none";
+        }
+    });
+
+    // キャラクター選択ボタンのクリックイベント（main.js内で）
     elements.selectButton.addEventListener("click", () => {
-        state.personality = elements.characterSelect.value;
-        updateCharacter(state.personality);
-        elements.modal.style.display = "none";
+        if (elements.characterSelect.value === "その他") {
+            if (
+                elements.customName.value &&
+                elements.customDescription.value &&
+                elements.customImage.files[0]
+            ) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const customCharacter = {
+                        name: elements.customName.value,
+                        description: elements.customDescription.value,
+                        image: e.target.result,
+                    };
+                    localStorage.setItem(
+                        "customCharacter",
+                        JSON.stringify(customCharacter)
+                    );
+                    updateCharacter(customCharacter);
+                    state.personality = customCharacter.name; // カスタムキャラクターの名前を設定
+                    elements.modal.style.display = "none";
+                };
+                reader.readAsDataURL(elements.customImage.files[0]);
+            } else {
+                alert("すべての項目を入力してください。");
+            }
+        } else {
+            state.personality = elements.characterSelect.value;
+            updateCharacter(state.personality);
+            elements.modal.style.display = "none";
+        }
     });
 
     // 自由記入ボタンのクリックイベント
-    elements.freeTextButton.addEventListener('click', () => handleFreeText(elements, state));
+    elements.freeTextButton.addEventListener("click", () =>
+        handleFreeText(elements, state)
+    );
 
     // モード切替ボタンのクリックイベント
-    elements.modeToggleButton.addEventListener('click', () => toggleMode(elements, state));
+    elements.modeToggleButton.addEventListener("click", () =>
+        toggleMode(elements, state)
+    );
 
     // ランダムオプションの表示
-    displayRandomOptions(button => handleSelection(button, elements, state));
+    displayRandomOptions((button) => handleSelection(button, elements, state));
 });
 
 // DOM要素を取得する関数
 function getElements() {
     return {
-        resultContainer: document.getElementById('result-container'),
-        resultIcon: document.getElementById('result-icon'),
-        resultText: document.getElementById('result-text'),
-        feedbackText: document.getElementById('feedback-text'),
-        producerText: document.getElementById('producer-text'),
+        resultContainer: document.getElementById("result-container"),
+        resultIcon: document.getElementById("result-icon"),
+        resultText: document.getElementById("result-text"),
+        feedbackText: document.getElementById("feedback-text"),
+        producerText: document.getElementById("producer-text"),
         modal: document.getElementById("modal"),
         selectButton: document.getElementById("select-button"),
         characterSelect: document.getElementById("character-select"),
-        svgAnimation: document.getElementById('svg-animation'),
-        freeTextButton: document.getElementById('free-text-button'),
-        freeTextInput: document.getElementById('free-text-input'),
-        freeTextContainer: document.getElementById('free-text-container'),
-        optionsContainer: document.getElementById('options-container'),
-        modeToggleButton: document.getElementById('mode-toggle-button')
+        svgAnimation: document.getElementById("svg-animation"),
+        freeTextButton: document.getElementById("free-text-button"),
+        freeTextInput: document.getElementById("free-text-input"),
+        freeTextContainer: document.getElementById("free-text-container"),
+        optionsContainer: document.getElementById("options-container"),
+        modeToggleButton: document.getElementById("mode-toggle-button"),
+        customForm: document.getElementById("custom-character-form"),
+        customName: document.getElementById("custom-name"),
+        customDescription: document.getElementById("custom-description"),
+        customImage: document.getElementById("custom-image"),
     };
 }
 
@@ -50,7 +94,7 @@ function initializeState() {
         isLocked: false,
         affectionTotal: 0,
         personality: "ツンデレ妹",
-        isFreeTextMode: false
+        isFreeTextMode: false,
     };
 }
 
@@ -60,13 +104,13 @@ async function handleFreeText(elements, state) {
 
     state.isLocked = true; // ロック状態にする
     const message = elements.freeTextInput.value;
-    elements.freeTextInput.value = '';
+    elements.freeTextInput.value = "";
 
     try {
         const result = await getEvaluationResult(message, state); // 評価結果を取得
         updateStateAndUI(result, elements, state); // 状態とUIを更新
     } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
     } finally {
         state.isLocked = false; // ロックを解除
     }
@@ -76,14 +120,14 @@ async function handleFreeText(elements, state) {
 function toggleMode(elements, state) {
     state.isFreeTextMode = !state.isFreeTextMode;
     if (state.isFreeTextMode) {
-        elements.optionsContainer.style.display = 'none';
-        elements.freeTextContainer.style.display = 'flex';
+        elements.optionsContainer.style.display = "none";
+        elements.freeTextContainer.style.display = "flex";
         elements.modeToggleButton.textContent = "選択肢モードに切り替え";
     } else {
-        elements.optionsContainer.style.display = 'flex';
-        elements.freeTextContainer.style.display = 'none';
+        elements.optionsContainer.style.display = "flex";
+        elements.freeTextContainer.style.display = "none";
         elements.modeToggleButton.textContent = "自由記入モードに切り替え";
-        displayRandomOptions(button => handleSelection(button, elements, state));
+        displayRandomOptions((button) => handleSelection(button, elements, state));
     }
 }
 
@@ -95,32 +139,48 @@ async function handleSelection(selectedButton, elements, state) {
     const message = selectedButton.textContent;
 
     // 選択されたボタンを強調表示
-    const buttons = elements.optionsContainer.querySelectorAll('.option-button');
-    buttons.forEach(button => {
+    const buttons = elements.optionsContainer.querySelectorAll(".option-button");
+    buttons.forEach((button) => {
         button.disabled = button !== selectedButton;
-        button.classList.toggle('selected', button === selectedButton);
+        button.classList.toggle("selected", button === selectedButton);
     });
 
     try {
         const result = await getEvaluationResult(message, state); // 評価結果を取得
         updateStateAndUI(result, elements, state); // 状態とUIを更新
     } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
     } finally {
         state.isLocked = false; // ロックを解除
-        buttons.forEach(button => button.disabled = false);
+        buttons.forEach((button) => (button.disabled = false));
 
         // 新しいオプションをすぐに表示
-        displayRandomOptions(button => handleSelection(button, elements, state));
+        displayRandomOptions((button) => handleSelection(button, elements, state));
     }
 }
 
 // 評価結果を取得する関数
 async function getEvaluationResult(message, state) {
-    console.log('Message:', message)
-    console.log('Personality:', state.personality)
-    console.log('Affection:', state.affectionTotal)
-    return await evaluateMessage(message, state.personality, state.affectionTotal);
+    console.log("Message:", message);
+    console.log("Personality:", state.personality);
+    console.log("Affection:", state.affectionTotal);
+
+    const customCharacter = JSON.parse(localStorage.getItem("customCharacter"));
+
+    let personality = state.personality;
+    let customDescription = null;
+
+    if (customCharacter && state.personality === customCharacter.name) {
+        personality = "その他";
+        customDescription = customCharacter.description;
+    }
+
+    return await evaluateMessage(
+        message,
+        personality,
+        state.affectionTotal,
+        customDescription
+    );
 }
 
 // 状態とUIを更新する関数
@@ -137,20 +197,20 @@ function updateResult(result, elements, affectionTotal) {
     elements.resultIcon.textContent = icon;
     elements.resultText.textContent = `評価: ${result.評価}`;
     elements.feedbackText.textContent = `累計親愛度: ${affectionTotal}`;
-    elements.resultContainer.classList.remove('hidden');
-    elements.resultContainer.classList.add('show');
+    elements.resultContainer.classList.remove("hidden");
+    elements.resultContainer.classList.add("show");
 }
 
 // 結果アイコンを取得する関数
 function getResultIcon(score) {
     if (score <= 0) {
-        return '😅 バッド';
+        return "😅 バッド";
     } else if (score < 10) {
-        return '😉 ノーマル';
+        return "😉 ノーマル";
     } else if (score < 20) {
-        return '😊 グッド';
+        return "😊 グッド";
     } else {
-        return '😇 パーフェクト';
+        return "😇 パーフェクト";
     }
 }
 
@@ -161,12 +221,12 @@ function updateSisterComment(result, elements) {
 
 // アニメーションを実行する関数
 function playAnimation(svgAnimation) {
-    svgAnimation.style.display = 'block';
+    svgAnimation.style.display = "block";
     svgAnimation.style.opacity = 1;
     setTimeout(() => {
         svgAnimation.style.opacity = 0;
         setTimeout(() => {
-            svgAnimation.style.display = 'none';
+            svgAnimation.style.display = "none";
         }, 1000);
     }, 3000);
 }

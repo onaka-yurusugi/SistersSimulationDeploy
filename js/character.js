@@ -67,10 +67,17 @@ function updateCharacter(personality) {
     const characterName = document.getElementById("character-name");
     const producerText = document.getElementById("producer-text");
 
-    const character = personalities[personality];
-    if (character) {
-        characterImage.src = character.characterImage;
-        characterName.textContent = character.characterName;
-        producerText.textContent = character.producerText;
+    if (typeof personality === 'string') {
+        const character = personalities[personality];
+        if (character) {
+            characterImage.src = character.characterImage;
+            characterName.textContent = character.characterName;
+            producerText.textContent = character.producerText;
+        }
+    } else if (typeof personality === 'object') {
+        // カスタムキャラクターの場合
+        characterImage.src = personality.image;
+        characterName.textContent = `【${personality.name}】`;
+        producerText.textContent = personality.description || "..."; // 説明がない場合のデフォルトテキスト
     }
 }

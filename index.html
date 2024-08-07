@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="./css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Sawarabi+Gothic&family=Hannari&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="game-container">
         <div class="game-window">
@@ -53,7 +55,13 @@
                 <option value="クリエイティブ妹">クリエイティブ妹</option>
                 <option value="委員長妹">委員長妹</option>
                 <option value="夢見がち妹">夢見がち妹</option>
+                <option value="その他">その他</option>
             </select>
+            <div id="custom-character-form" style="display: none;">
+                <input type="text" id="custom-name" placeholder="名前">
+                <textarea id="custom-description" placeholder="性格の説明"></textarea>
+                <input type="file" id="custom-image" accept="image/*">
+            </div>
             <button id="select-button">決定</button>
         </div>
     </div>
@@ -63,4 +71,5 @@
     <script src="./js/produce.js"></script>
     <script src="./js/sendGpt.js"></script>
 </body>
+
 </html>
